@@ -17,7 +17,7 @@ from web3.types import (
     Nonce,
     HexBytes,
 )
-from eth_utils import is_same_address
+from eth_utils import is_same_address, remove_0x_prefix
 from eth_typing import AnyAddress
 
 ETH_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -44,6 +44,15 @@ def _load_abi(name: str) -> str:
     with open(os.path.abspath(path + f"{name}.abi")) as f:
         abi: str = json.load(f)
     return abi
+
+
+def split_transaction_input(input_str: str) -> List[bytes]:
+    output: List[bytes] = []
+    curr_str: str = remove_0x_prefix(input_str)
+    while curr_str:
+        output.append(curr_str[-64:])
+        curr_str = curr_str[:-64]
+    return [bytes.fromhex(i) for i in reversed(output)]
 
 
 def check_approval(method: Callable) -> Callable:
@@ -785,6 +794,57 @@ class Uniswap:
             return False
 
     # ------ Tx Utils ------------------------------------------------------------------
+    def parse_transaction(self, transaction: dict) -> dict:
+        input_str: str = transaction['input']
+        input_data: List[hex] = split_transaction_input(input_str)
+        method: AddressLike = input_data[0]
+        method_hex: str = method.hex()
+        contract = transaction['to']
+        if method_hex == 'fb3bdb41':
+            method_str: str = "swapETHForExactTokens"
+            amount_in: int = transaction['value']
+            amount_out: int = int.from_bytes(input_data[1], 'big')
+            deadline: int = int.from_bytes(input_data[4], 'big')
+            to: AddressLike = input_data[3]
+            path: List[AddressLike] = [input_data[6], input_data[7]]
+            base: str = self.get_token_symbol(path[-1][12:])
+            quote: str = self.get_token_symbol(path[0][12:])
+            side = 'buy'
+        elif method_hex == '4a25d94a':
+            method_str: str = "swapTokensForExactETH"
+            amount_out: int = int.from_bytes(input_data[1], 'big')
+            amount_in: int = int.from_bytes(input_data[2], 'big')  # amountInMax
+            to: AddressLike = input_data[4]
+            deadline: int = int.from_bytes(input_data[5], 'big')
+            path: List[AddressLike] = [input_data[7], input_data[8]]
+            base: str = self.get_token_symbol(path[0][12:])
+            quote: str = self.get_token_symbol(path[-1][12:])
+            side = 'sell'
+        elif method_hex == '18cbafe5':
+            method_str: str = "swapExactTokensForETH"
+            amount_in: int = int.from_bytes(input_data[1], 'big')
+            amount_out: int = int.from_bytes(input_data[2], 'big')  # amountOutMin
+            to: AddressLike = input_data[4]
+            deadline: int = int.from_bytes(input_data[5], 'big')
+            path: List[AddressLike] = [input_data[7], input_data[8]]
+            base: str = self.get_token_symbol(path[0][12:])
+            quote: str = self.get_token_symbol(path[-1][12:])
+            side = 'sell'
+        else:
+            raise NotImplementedError('method not implemented: {}'.format(method_hex))
+        return {
+            'method': method_str,
+            'side': side,
+            'amountIn': amount_in,
+            'amountOut': amount_out,
+            'deadline': deadline,
+            'to': to,
+            'path': path,
+            'base': base,
+            'quote': quote,
+            'contract': contract,
+        }
+
     def _deadline(self) -> int:
         """Get a predefined deadline. 10min by default (same as the Uniswap SDK)."""
         return int(time.time()) + self.deadline_add
