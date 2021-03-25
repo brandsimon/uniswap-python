@@ -630,6 +630,40 @@ class Uniswap:
                 self._get_tx_params(eth_qty),
             )
 
+    @supports([2])
+    @check_approval
+    def eth_to_token_swap_output(
+        self, output_token: AddressLike, eth_qty: int, qty: int, recipient: Optional[AddressLike] = None
+    ) -> HexBytes:
+        if recipient is None:
+            recipient = self.address
+        return self._build_and_send_tx(
+            self.router.functions.swapETHForExactTokens(
+                qty,
+                [self.get_weth_address(), output_token],
+                recipient,
+                self._deadline(),
+            ),
+            self._get_tx_params(int((1 + self.max_slippage) * eth_qty)),
+        )
+
+    @supports([2])
+    @check_approval
+    def token_to_eth_swap_output(
+        self, input_token: AddressLike, qty: int, eth_qty: int, recipient: Optional[AddressLike] = None
+    ) -> HexBytes:
+        if recipient is None:
+            recipient = self.address
+        return self._build_and_send_tx(
+            self.router.functions.swapExactTokensForETH(
+                qty,
+                int((1 / (1 + self.max_slippage)) * eth_qty),
+                [input_token, self.get_weth_address()],
+                self.address,
+                self._deadline(),
+            ),
+        )
+
     def _token_to_eth_swap_output(
         self, input_token: AddressLike, qty: Wei, recipient: Optional[AddressLike]
     ) -> HexBytes:
