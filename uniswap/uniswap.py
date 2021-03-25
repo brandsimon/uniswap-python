@@ -878,6 +878,21 @@ class Uniswap:
             ),
         }
 
+    def cancel_transaction(self, nonce: Nonce, gas_price: Wei = Wei(250001)):
+        address = _addr_to_str(self.address)
+        transaction = {
+            "from": address,
+            "to": address,
+            "value": 0,
+            "nonce": nonce,
+            "gas": Wei(360000),
+            "gasPrice": gas_price,
+        }
+        signed_txn = self.w3.eth.account.sign_transaction(
+            transaction, private_key=self.private_key
+        )
+        return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+
     # ------ Price Calculation Utils ---------------------------------------------------
     def _calculate_max_input_token(
         self, input_token: AddressLike, qty: int, output_token: AddressLike
