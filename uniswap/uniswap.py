@@ -130,12 +130,14 @@ class Uniswap:
         web3: Web3 = None,
         version: int = 1,
         max_slippage: float = 0.1,
+        deadline: int = 600,
     ) -> None:
         self.address: AddressLike = _str_to_addr(address) if isinstance(
             address, str
         ) else address
         self.private_key = private_key
         self.version = version
+        self.deadline_add = deadline
 
         # TODO: Write tests for slippage
         self.max_slippage = max_slippage
@@ -751,7 +753,7 @@ class Uniswap:
     # ------ Tx Utils ------------------------------------------------------------------
     def _deadline(self) -> int:
         """Get a predefined deadline. 10min by default (same as the Uniswap SDK)."""
-        return int(time.time()) + 10 * 60
+        return int(time.time()) + self.deadline_add
 
     def _build_and_send_tx(
         self, function: ContractFunction, tx_params: Optional[TxParams] = None
