@@ -62,22 +62,22 @@ def check_approval(method: Callable) -> Callable:
     @functools.wraps(method)
     def approved(self: Any, *args: Any, **kwargs: Any) -> Any:
         # Check to see if the first token is actually ETH
-        token = args[0] if args[0] != ETH_ADDRESS else None
-        token_two = None
+        tokens = []
+        if len(args):
+            tokens.append(args[0])
+            # Check second token, if needed
+            if method.__name__ == "make_trade" or method.__name__ == "make_trade_output":
+                tokens.append(args[1])
+        else:
+            tokens.append(kwargs.get('input_token'))
+            tokens.append(kwargs.get('output_token'))
 
-        # Check second token, if needed
-        if method.__name__ == "make_trade" or method.__name__ == "make_trade_output":
-            token_two = args[1] if args[1] != ETH_ADDRESS else None
-
-        # Approve both tokens, if needed
-        if token:
-            is_approved = self._is_approved(token)
-            if not is_approved:
-                self.approve(token)
-        if token_two:
-            is_approved = self._is_approved(token_two)
-            if not is_approved:
-                self.approve(token_two)
+        # Approve tokens, if needed
+        for token in tokens:
+            if token and token is not ETH_ADDRESS:
+                is_approved = self._is_approved(token)
+                if not is_approved:
+                    self.approve(token)
         return method(self, *args, **kwargs)
 
     return approved
