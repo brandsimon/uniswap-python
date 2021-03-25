@@ -248,6 +248,34 @@ class Uniswap:
         token_contract = self._load_contract(abi_name="erc20", address=address)
         return token_contract.functions.symbol().call()
 
+    @supports([2])
+    def get_all_pairs(self) -> List[dict]:
+        # FIXME: This is a very expensive operation, would benefit greatly from caching
+        length = self.factory_contract.functions.allPairsLength().call()
+
+        pairs = []
+        for i in range(0, length):
+            try:
+                pair_address = self.factory_contract.functions.allPairs(i).call()
+                pair = self._load_contract(abi_name="uniswap-v2/pair", address=pair_address)
+                token0_address = pair.functions.token0().call()
+                token0_contract = self._load_contract(abi_name="erc20", address=token0_address)  # abi is incorrect
+                token0_symbol = token0_contract.functions.symbol().call()  # breaks here
+                token1_address = pair.functions.token1().call()
+                token1_contract = self._load_contract(abi_name="erc20", address=token1_address)
+                token1_symbol = token1_contract.functions.symbol().call()
+                print(token0_address)
+                print(token1_address)
+                print(token0_symbol, token1_symbol)
+
+            except BaseException as e:
+                print('.', e)
+                # import pdb; pdb.set_trace()
+
+            # pairs.append(token)
+            # i, contract_address, token0 address, token0 name, token0 symbol, total_symbol
+        return pairs
+
     @supports([1])
     def exchange_address_from_token(self, token_addr: AddressLike) -> AddressLike:
         ex_addr: AddressLike = self.factory_contract.functions.getExchange(
