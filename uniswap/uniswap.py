@@ -231,6 +231,12 @@ class Uniswap:
             raise InvalidToken(address)
         return {"name": name, "symbol": symbol}
 
+    @functools.lru_cache()
+    @supports([1, 2])
+    def get_token_symbol(self, address: AddressLike) -> str:
+        token_contract = self._load_contract(abi_name="erc20", address=address)
+        return token_contract.functions.symbol().call()
+
     @supports([1])
     def exchange_address_from_token(self, token_addr: AddressLike) -> AddressLike:
         ex_addr: AddressLike = self.factory_contract.functions.getExchange(
