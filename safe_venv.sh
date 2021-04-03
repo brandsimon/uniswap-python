@@ -10,7 +10,6 @@ bwrap \
         --ro-bind "/home/admin/uniswap-python/uniswap.egg-info/" "/home/admin/uniswap-python/uniswap.egg-info/" \
         --ro-bind "/home/admin/uniswap-python/_ccxt.egg-info/" "/home/admin/ccxt/python/ccxt.egg-info/" \
         --dev /dev \
-        --tmpfs /tmp \
         --unshare-user \
         --unshare-ipc \
         --unshare-pid \
