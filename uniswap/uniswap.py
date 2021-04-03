@@ -644,6 +644,9 @@ class Uniswap:
     def eth_to_token_swap_output(
         self, output_token: AddressLike, eth_qty: int, qty: int, recipient: Optional[AddressLike] = None
     ) -> HexBytes:
+        balance = self.get_token_balance(ETH_ADDRESS)
+        if balance < eth_qty:
+            raise InsufficientBalance(balance, qty)
         if recipient is None:
             recipient = self.address
         return self._build_and_send_tx(
@@ -661,6 +664,9 @@ class Uniswap:
     def token_to_eth_swap_output(
         self, input_token: AddressLike, qty: int, eth_qty: int, recipient: Optional[AddressLike] = None
     ) -> HexBytes:
+        balance = self.get_token_balance(input_token)
+        if balance < qty:
+            raise InsufficientBalance(balance, qty)
         if recipient is None:
             recipient = self.address
         return self._build_and_send_tx(
